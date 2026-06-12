@@ -32,10 +32,12 @@ try
     // Repositories
     builder.Services.AddScoped<IAccountRepository, AccountRepository>();
     builder.Services.AddScoped<ITransferRepository, TransferRepository>();
+    builder.Services.AddScoped<IReportRepository, ReportRepository>();
 
     // Services
     builder.Services.AddScoped<IAccountService, AccountService>();
     builder.Services.AddScoped<ITransferService, TransferService>();
+    builder.Services.AddScoped<IReportService, ReportService>();
 
     // UC7: exchange rate — typed HttpClient with 10s timeout; caches internally for 1h
     builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>(client =>
