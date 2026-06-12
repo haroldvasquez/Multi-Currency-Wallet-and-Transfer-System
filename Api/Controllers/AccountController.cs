@@ -1,43 +1,42 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+using Application.DTOs;
+using Application.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/accounts")]
     [ApiController]
     public class AccountController : ControllerBase
     {
-        // GET: api/<AccountController>
-        [HttpGet]
-        public IEnumerable<string> Get()
+        private readonly IAccountService _accountService;
+
+        public AccountController(IAccountService accountService)
         {
-            return new string[] { "value1", "value2" };
+            _accountService = accountService;
         }
 
-        // GET api/<AccountController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+        /// <summary>UC2 — Consultar cuenta por ID.</summary>
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetById(Guid id)
         {
-            return "value";
+            var result = await _accountService.GetByIdAsync(id);
+            return Ok(result);
         }
 
-        // POST api/<AccountController>
+        /// <summary>UC1 — Crear cuenta.</summary>
         [HttpPost]
-        public void Post([FromBody] string value)
+        public async Task<IActionResult> CreateAccount([FromBody] CreateAccountRequest request)
         {
+            var result = await _accountService.CreateAccountAsync(request);
+            return CreatedAtAction(nameof(GetById), new { id = result.AccountId }, result);
         }
 
-        // PUT api/<AccountController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        /// <summary>UC3 — Realizar depósito.</summary>
+        [HttpPost("{id:guid}/deposits")]
+        public async Task<IActionResult> Deposit(Guid id, [FromBody] DepositRequest request)
         {
-        }
-
-        // DELETE api/<AccountController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+            var result = await _accountService.DepositAsync(id, request);
+            return Ok(result);
         }
     }
 }
