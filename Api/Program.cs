@@ -3,6 +3,7 @@ using Application.Interfaces;
 using Application.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
+using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
@@ -27,8 +28,18 @@ try
         options.UseNpgsql(connectionString));
 
     builder.Services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+
+    // Repositories
     builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+    builder.Services.AddScoped<ITransferRepository, TransferRepository>();
+
+    // Services
     builder.Services.AddScoped<IAccountService, AccountService>();
+    builder.Services.AddScoped<ITransferService, TransferService>();
+
+    // UC7: exchange rate — typed HttpClient with 10s timeout; caches internally for 1h
+    builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>(client =>
+        client.Timeout = TimeSpan.FromSeconds(10));
 
     builder.Services.AddMemoryCache();
 
@@ -42,6 +53,7 @@ try
     {
         app.MapOpenApi();
         app.MapScalarApiReference();
+        app.MapGet("/", () => Results.Redirect("/scalar"));
     }
 
     app.UseMiddleware<GlobalExceptionMiddleware>();

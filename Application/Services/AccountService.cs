@@ -82,6 +82,7 @@ namespace Application.Services
 
             var previousBalance = account.Balance;
             account.Balance    += request.Amount;
+            account.Version++;
 
             var movement = new Movement
             {
@@ -124,6 +125,7 @@ namespace Application.Services
 
             var previousBalance = account.Balance;
             account.Balance    -= request.Amount;
+            account.Version++;
 
             var movement = new Movement
             {

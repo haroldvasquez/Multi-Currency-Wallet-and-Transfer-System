@@ -37,13 +37,16 @@ namespace Api.Middlewares
         {
             var (statusCode, message) = ex switch
             {
-                UnsupportedCurrencyException e => (StatusCodes.Status400BadRequest, e.Message),
-                InvalidBalanceException e      => (StatusCodes.Status400BadRequest, e.Message),
-                InvalidAmountException e       => (StatusCodes.Status400BadRequest, e.Message),
-                AccountNotActiveException e    => (StatusCodes.Status400BadRequest, e.Message),
-                InsufficientFundsException e   => (StatusCodes.Status400BadRequest, e.Message),
-                AccountNotFoundException e     => (StatusCodes.Status404NotFound, e.Message),
-                CustomerNotFoundException e    => (StatusCodes.Status404NotFound, e.Message),
+                UnsupportedCurrencyException e  => (StatusCodes.Status400BadRequest,  e.Message),
+                InvalidBalanceException e        => (StatusCodes.Status400BadRequest,  e.Message),
+                InvalidAmountException e         => (StatusCodes.Status400BadRequest,  e.Message),
+                AccountNotActiveException e      => (StatusCodes.Status400BadRequest,  e.Message),
+                InsufficientFundsException e     => (StatusCodes.Status400BadRequest,  e.Message),
+                SameAccountTransferException e   => (StatusCodes.Status400BadRequest,  e.Message),
+                AccountNotFoundException e       => (StatusCodes.Status404NotFound,    e.Message),
+                CustomerNotFoundException e      => (StatusCodes.Status404NotFound,    e.Message),
+                DuplicateTransferException e     => (StatusCodes.Status409Conflict,    e.Message),
+                ConcurrencyConflictException e   => (StatusCodes.Status409Conflict,    e.Message),
                 _ => (StatusCodes.Status500InternalServerError, "Error interno del servidor.")
             };
 

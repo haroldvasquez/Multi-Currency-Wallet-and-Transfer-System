@@ -45,9 +45,12 @@ public class AppDbContext : DbContext, IAppDbContext
             entity.Property(e => e.OpeningBalance)
                 .HasPrecision(18, 2)
                 .HasColumnName("opening_balance");
+            // IsConcurrencyToken() causes EF to include `AND version = @original` in UPDATE
+            // statements, enabling optimistic concurrency detection.
             entity.Property(e => e.Version)
                 .HasDefaultValue(1L)
-                .HasColumnName("version");
+                .HasColumnName("version")
+                .IsConcurrencyToken();
 
             entity.HasOne(d => d.Customer)
                 .WithMany(p => p.Accounts)
@@ -161,5 +164,22 @@ public class AppDbContext : DbContext, IAppDbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_transfer_target_account");
         });
+    }
+
+    public async Task ExecuteInTransactionAsync(
+        Func<Task> action,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await action();
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }
