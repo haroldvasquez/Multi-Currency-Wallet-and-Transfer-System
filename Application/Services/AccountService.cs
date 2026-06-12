@@ -218,6 +218,7 @@ namespace Application.Services
         {
             MovementId      = movement.MovementId,
             AccountId       = movement.AccountId,
+            TransferId      = movement.TransferId,
             MovementType    = movement.MovementType,
             Amount          = movement.Amount,
             PreviousBalance = movement.PreviousBalance,

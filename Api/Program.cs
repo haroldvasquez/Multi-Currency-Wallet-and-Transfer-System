@@ -4,6 +4,7 @@ using Application.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
@@ -46,6 +47,18 @@ try
     builder.Services.AddMemoryCache();
 
     builder.Services.AddControllers()
+        .ConfigureApiBehaviorOptions(options =>
+        {
+            options.InvalidModelStateResponseFactory = ctx =>
+            {
+                var errors = ctx.ModelState
+                    .Where(e => e.Value?.Errors.Count > 0)
+                    .SelectMany(e => e.Value!.Errors.Select(x => x.ErrorMessage))
+                    .ToList();
+                var message = errors.Count > 0 ? string.Join(" ", errors) : "Solicitud no válida.";
+                return new BadRequestObjectResult(new { error = message });
+            };
+        })
         .AddJsonOptions(o => o.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping);
     builder.Services.AddOpenApi();
 
