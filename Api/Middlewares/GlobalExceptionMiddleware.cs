@@ -41,6 +41,7 @@ namespace Api.Middlewares
                 InvalidBalanceException e      => (StatusCodes.Status400BadRequest, e.Message),
                 InvalidAmountException e       => (StatusCodes.Status400BadRequest, e.Message),
                 AccountNotActiveException e    => (StatusCodes.Status400BadRequest, e.Message),
+                InsufficientFundsException e   => (StatusCodes.Status400BadRequest, e.Message),
                 AccountNotFoundException e     => (StatusCodes.Status404NotFound, e.Message),
                 CustomerNotFoundException e    => (StatusCodes.Status404NotFound, e.Message),
                 _ => (StatusCodes.Status500InternalServerError, "Error interno del servidor.")

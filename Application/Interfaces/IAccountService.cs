@@ -7,5 +7,6 @@ namespace Application.Interfaces
         Task<AccountResponse> CreateAccountAsync(CreateAccountRequest request);
         Task<AccountResponse> GetByIdAsync(Guid id);
         Task<MovementResponse> DepositAsync(Guid accountId, DepositRequest request);
+        Task<MovementResponse> WithdrawAsync(Guid accountId, WithdrawalRequest request);
     }
 }

@@ -38,5 +38,13 @@ namespace Api.Controllers
             var result = await _accountService.DepositAsync(id, request);
             return Ok(result);
         }
+
+        /// <summary>UC4 — Realizar retiro.</summary>
+        [HttpPost("{id:guid}/withdrawals")]
+        public async Task<IActionResult> Withdraw(Guid id, [FromBody] WithdrawalRequest request)
+        {
+            var result = await _accountService.WithdrawAsync(id, request);
+            return Ok(result);
+        }
     }
 }

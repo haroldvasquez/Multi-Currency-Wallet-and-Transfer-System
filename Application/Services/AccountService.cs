@@ -89,6 +89,42 @@ namespace Application.Services
             return MapToMovementResponse(movement);
         }
 
+        public async Task<MovementResponse> WithdrawAsync(Guid accountId, WithdrawalRequest request)
+        {
+            if (request.Amount <= 0)
+                throw new InvalidAmountException("El monto del retiro debe ser mayor a 0.");
+
+            var account = await _accountRepository.GetByIdAsync(accountId);
+            if (account is null)
+                throw new AccountNotFoundException(accountId);
+
+            if (account.AccountStatus != AccountStatus.Active)
+                throw new AccountNotActiveException(accountId, account.AccountStatus);
+
+            if (account.Balance < request.Amount)
+                throw new InsufficientFundsException(accountId, account.Balance, request.Amount);
+
+            var previousBalance = account.Balance;
+            account.Balance    -= request.Amount;
+
+            var movement = new Movement
+            {
+                MovementId          = Guid.NewGuid(),
+                AccountId           = accountId,
+                MovementType        = MovementType.Withdrawal,
+                Amount              = request.Amount,
+                PreviousBalance     = previousBalance,
+                NewBalance          = account.Balance,
+                MovementDescription = request.Description ?? "Retiro",
+                CreatedAt           = DateTime.UtcNow
+            };
+
+            await _accountRepository.AddMovementAsync(movement);
+            await _accountRepository.SaveChangesAsync();
+
+            return MapToMovementResponse(movement);
+        }
+
         // ── Mappers ─────────────────────────────────────────────────────────────
 
         private static AccountResponse MapToAccountResponse(Account account) => new()
