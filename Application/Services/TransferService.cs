@@ -146,6 +146,15 @@ public class TransferService : ITransferService
                 request.SourceAccountId, request.TargetAccountId);
             throw new ConcurrencyConflictException();
         }
+        catch (DbUpdateException)
+        {
+            // A concurrent request with the same idempotency_key may have won the race
+            // and triggered the DB unique constraint. Re-check before returning 500.
+            var raceWinner = await _transferRepository.GetByIdempotencyKeyAsync(request.IdempotencyKey);
+            if (raceWinner is not null)
+                throw new DuplicateTransferException(request.IdempotencyKey);
+            throw;
+        }
 
         // Invalidate cached movement history for both accounts
         InvalidateMovementCache(request.SourceAccountId);

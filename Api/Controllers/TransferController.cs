@@ -15,10 +15,18 @@ public class TransferController : ControllerBase
         _transferService = transferService;
     }
 
-    /// <summary>UC5 — Transferencia entre cuentas.</summary>
+    /// <summary>UC5 — Transferencia entre cuentas. Requiere el encabezado <c>Idempotency-Key: &lt;uuid&gt;</c>.</summary>
     [HttpPost]
     public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
     {
+        if (!Request.Headers.TryGetValue("Idempotency-Key", out var rawKey)
+            || !Guid.TryParse(rawKey, out var idempotencyKey))
+        {
+            return BadRequest(new { error = "Se requiere el encabezado 'Idempotency-Key' con un UUID válido." });
+        }
+
+        request.IdempotencyKey = idempotencyKey;
+
         var result = await _transferService.TransferAsync(request);
         return Ok(result);
     }
