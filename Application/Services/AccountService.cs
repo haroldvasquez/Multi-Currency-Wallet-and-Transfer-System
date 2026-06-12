@@ -2,6 +2,7 @@ using Application.DTOs;
 using Application.Exceptions;
 using Application.Interfaces;
 using Domain.Models;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Services
@@ -9,13 +10,19 @@ namespace Application.Services
     public class AccountService : IAccountService
     {
         private readonly IAccountRepository _accountRepository;
+        private readonly IMemoryCache _cache;
         private readonly ILogger<AccountService> _logger;
 
+        private static readonly TimeSpan MovementCacheTtl = TimeSpan.FromMinutes(5);
         private static readonly HashSet<string> SupportedCurrencies = new() { "BOB", "USD" };
 
-        public AccountService(IAccountRepository accountRepository, ILogger<AccountService> logger)
+        public AccountService(
+            IAccountRepository accountRepository,
+            IMemoryCache cache,
+            ILogger<AccountService> logger)
         {
             _accountRepository = accountRepository;
+            _cache = cache;
             _logger = logger;
         }
 
@@ -91,6 +98,8 @@ namespace Application.Services
             await _accountRepository.AddMovementAsync(movement);
             await _accountRepository.SaveChangesAsync();
 
+            InvalidateMovementCache(accountId);
+
             _logger.LogInformation(
                 "Depósito realizado. AccountId={AccountId} Amount={Amount} PreviousBalance={PreviousBalance} NewBalance={NewBalance} MovementId={MovementId}",
                 accountId, request.Amount, previousBalance, account.Balance, movement.MovementId);
@@ -131,6 +140,8 @@ namespace Application.Services
             await _accountRepository.AddMovementAsync(movement);
             await _accountRepository.SaveChangesAsync();
 
+            InvalidateMovementCache(accountId);
+
             _logger.LogInformation(
                 "Retiro realizado. AccountId={AccountId} Amount={Amount} PreviousBalance={PreviousBalance} NewBalance={NewBalance} MovementId={MovementId}",
                 accountId, request.Amount, previousBalance, account.Balance, movement.MovementId);
@@ -138,7 +149,57 @@ namespace Application.Services
             return MapToMovementResponse(movement);
         }
 
-        // ── Mappers ─────────────────────────────────────────────────────────────
+        public async Task<PagedResponse<MovementResponse>> GetMovementsAsync(Guid accountId, int page, int pageSize)
+        {
+            if (!await _accountRepository.AccountExistsAsync(accountId))
+                throw new AccountNotFoundException(accountId);
+
+            var cacheKey = BuildMovementCacheKey(accountId, page, pageSize);
+
+            if (_cache.TryGetValue(cacheKey, out PagedResponse<MovementResponse>? cached) && cached is not null)
+            {
+                _logger.LogDebug(
+                    "Historial de movimientos servido desde caché. AccountId={AccountId} Page={Page} PageSize={PageSize}",
+                    accountId, page, pageSize);
+                return cached;
+            }
+
+            var (items, totalCount) = await _accountRepository.GetMovementsPagedAsync(accountId, page, pageSize);
+
+            var response = new PagedResponse<MovementResponse>
+            {
+                Page      = page,
+                PageSize  = pageSize,
+                TotalCount = totalCount,
+                Items     = items.Select(MapToMovementResponse).ToList()
+            };
+
+            _cache.Set(cacheKey, response, MovementCacheTtl);
+
+            _logger.LogDebug(
+                "Historial de movimientos cargado de BD. AccountId={AccountId} Page={Page} PageSize={PageSize} TotalCount={TotalCount}",
+                accountId, page, pageSize, totalCount);
+
+            return response;
+        }
+
+        // ── Cache helpers ────────────────────────────────────────────────────────
+
+        // Generation-based cache invalidation: incrementing the generation makes all
+        // cached pages for this account unreachable without needing to enumerate keys.
+        private string BuildMovementCacheKey(Guid accountId, int page, int pageSize)
+        {
+            var gen = _cache.Get<long>($"mov_gen_{accountId}");
+            return $"mov_{accountId}_{gen}_{page}_{pageSize}";
+        }
+
+        private void InvalidateMovementCache(Guid accountId)
+        {
+            var gen = _cache.Get<long>($"mov_gen_{accountId}");
+            _cache.Set($"mov_gen_{accountId}", gen + 1);
+        }
+
+        // ── Mappers ──────────────────────────────────────────────────────────────
 
         private static AccountResponse MapToAccountResponse(Account account) => new()
         {

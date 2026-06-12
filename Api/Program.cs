@@ -30,6 +30,8 @@ try
     builder.Services.AddScoped<IAccountRepository, AccountRepository>();
     builder.Services.AddScoped<IAccountService, AccountService>();
 
+    builder.Services.AddMemoryCache();
+
     builder.Services.AddControllers()
         .AddJsonOptions(o => o.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping);
     builder.Services.AddOpenApi();
