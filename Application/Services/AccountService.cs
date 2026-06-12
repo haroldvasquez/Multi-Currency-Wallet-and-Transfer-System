@@ -2,18 +2,21 @@ using Application.DTOs;
 using Application.Exceptions;
 using Application.Interfaces;
 using Domain.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services
 {
     public class AccountService : IAccountService
     {
         private readonly IAccountRepository _accountRepository;
+        private readonly ILogger<AccountService> _logger;
 
         private static readonly HashSet<string> SupportedCurrencies = new() { "BOB", "USD" };
 
-        public AccountService(IAccountRepository accountRepository)
+        public AccountService(IAccountRepository accountRepository, ILogger<AccountService> logger)
         {
             _accountRepository = accountRepository;
+            _logger = logger;
         }
 
         public async Task<AccountResponse> CreateAccountAsync(CreateAccountRequest request)
@@ -42,6 +45,10 @@ namespace Application.Services
 
             await _accountRepository.AddAsync(account);
             await _accountRepository.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Cuenta creada. AccountId={AccountId} AccountNumber={AccountNumber} Currency={Currency} CustomerId={CustomerId}",
+                account.AccountId, account.AccountNumber, account.Currency, account.CustomerId);
 
             return MapToAccountResponse(account);
         }
@@ -81,10 +88,12 @@ namespace Application.Services
                 CreatedAt           = DateTime.UtcNow
             };
 
-            // EF Core tracks the balance update on `account` and the new movement;
-            // SaveChangesAsync wraps both in a single implicit transaction.
             await _accountRepository.AddMovementAsync(movement);
             await _accountRepository.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Depósito realizado. AccountId={AccountId} Amount={Amount} PreviousBalance={PreviousBalance} NewBalance={NewBalance} MovementId={MovementId}",
+                accountId, request.Amount, previousBalance, account.Balance, movement.MovementId);
 
             return MapToMovementResponse(movement);
         }
@@ -121,6 +130,10 @@ namespace Application.Services
 
             await _accountRepository.AddMovementAsync(movement);
             await _accountRepository.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Retiro realizado. AccountId={AccountId} Amount={Amount} PreviousBalance={PreviousBalance} NewBalance={NewBalance} MovementId={MovementId}",
+                accountId, request.Amount, previousBalance, account.Balance, movement.MovementId);
 
             return MapToMovementResponse(movement);
         }
