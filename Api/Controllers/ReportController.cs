@@ -1,8 +1,10 @@
 using Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
 
+[Authorize]
 [Route("api/reportes")]
 [ApiController]
 public class ReportController : ControllerBase

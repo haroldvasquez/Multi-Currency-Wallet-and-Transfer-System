@@ -1,13 +1,17 @@
 using Api.Middlewares;
+using Api.OpenApi;
 using Application.Interfaces;
 using Application.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
+using System.Text;
 using System.Text.Encodings.Web;
 
 // Bootstrap logger captures startup errors before full Serilog config loads.
@@ -46,6 +50,26 @@ try
 
     builder.Services.AddMemoryCache();
 
+    // JWT authentication
+    var jwtKey = builder.Configuration["Jwt:Key"]!;
+    builder.Services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer           = true,
+                ValidateAudience         = true,
+                ValidateLifetime         = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer              = builder.Configuration["Jwt:Issuer"],
+                ValidAudience            = builder.Configuration["Jwt:Audience"],
+                IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            };
+        });
+
+    builder.Services.AddAuthorization();
+
     builder.Services.AddControllers()
         .ConfigureApiBehaviorOptions(options =>
         {
@@ -60,7 +84,9 @@ try
             };
         })
         .AddJsonOptions(o => o.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping);
-    builder.Services.AddOpenApi();
+
+    builder.Services.AddOpenApi(options =>
+        options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
     var app = builder.Build();
 
@@ -74,6 +100,7 @@ try
     app.UseMiddleware<GlobalExceptionMiddleware>();
     app.UseSerilogRequestLogging();
     app.UseHttpsRedirection();
+    app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
 
