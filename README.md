@@ -57,7 +57,7 @@ La cadena de conexión por defecto en `Api/appsettings.json` apunta a `localhost
 
 Ajustar usuario/contraseña según la instalación local de PostgreSQL.
 
-### 4. Configurar clave JWT (opcional)
+### 4. Configurar clave JWT
 
 En `Api/appsettings.json`, configurar la clave JWT:
 
