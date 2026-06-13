@@ -14,6 +14,10 @@ using Serilog;
 using System.Text;
 using System.Text.Encodings.Web;
 
+// Load .env before the configuration system is built so that
+// all environment variables are available to IConfiguration.
+DotNetEnv.Env.TraversePath().Load();
+
 // Bootstrap logger captures startup errors before full Serilog config loads.
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()

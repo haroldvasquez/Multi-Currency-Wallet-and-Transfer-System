@@ -1,0 +1,536 @@
+{
+  "info": {
+    "name": "BancoSol - Multi-Currency Wallet API",
+    "description": "Colección de endpoints para la API de billeteras multimoneda (BOB/USD) del BancoSol.\n\n## Autenticación\nTodos los endpoints requieren un token JWT excepto `/api/auth/token`.\n1. Ejecutar \"Obtener Token\" primero\n2. El token se asigna automáticamente a la variable `{{token}}`\n\n## Variables de entorno recomendadas\n- `base_url`: `http://localhost:5257` (o URL de producción)\n\n## Flujo de prueba típico\n1. Obtener token\n2. Crear cliente con POST /api/customers *(no implementado - crear cuentas directamente)*\n3. Crear cuenta BOB\n4. Crear cuenta USD\n5. Depositar en cuenta BOB\n6. Transferir de BOB a USD\n7. Consultar movimientos\n8. Consultar reporte consolidado",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5257",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "account_id_bob",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "account_id_usd",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customer_id",
+      "value": "00000000-0000-0000-0000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "movement_account_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Obtener Token JWT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set('token', jsonData.access_token);",
+                  "console.log('Token obtenido y guardado en variable {{token}}');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/token",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "token"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "Crear Cuenta BOB",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set('account_id_bob', jsonData.accountId);",
+                  "console.log('Cuenta BOB creada con ID: ' + jsonData.accountId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customer_id}}\",\n  \"currency\": \"BOB\",\n  \"initialBalance\": 1000.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts"]
+            }
+          }
+        },
+        {
+          "name": "Crear Cuenta USD",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set('account_id_usd', jsonData.accountId);",
+                  "console.log('Cuenta USD creada con ID: ' + jsonData.accountId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customer_id}}\",\n  \"currency\": \"USD\",\n  \"initialBalance\": 500.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts"]
+            }
+          }
+        },
+        {
+          "name": "Crear Cuenta - Moneda No Soportada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customer_id}}\",\n  \"currency\": \"EUR\",\n  \"initialBalance\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts"]
+            }
+          }
+        },
+        {
+          "name": "Consultar Cuenta por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/{{account_id_bob}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts", "{{account_id_bob}}"]
+            }
+          }
+        },
+        {
+          "name": "Consultar Cuenta - No Encontrada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/00000000-0000-0000-0000-000000000099",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts", "00000000-0000-0000-0000-000000000099"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Depósito en Cuenta BOB",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set('movement_account_id', jsonData.accountId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500.00,\n  \"description\": \"Depósito inicial en BOB\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounts/{{account_id_bob}}/deposits",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts", "{{account_id_bob}}", "deposits"]
+            }
+          }
+        },
+        {
+          "name": "Retiro de Cuenta USD",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00,\n  \"description\": \"Retiro para gastos\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounts/{{account_id_usd}}/withdrawals",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts", "{{account_id_usd}}", "withdrawals"]
+            }
+          }
+        },
+        {
+          "name": "Retiro - Saldo Insuficiente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 999999.00,\n  \"description\": \"Intento de retiro sin fondos suficientes\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounts/{{account_id_bob}}/withdrawals",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts", "{{account_id_bob}}", "withdrawals"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transfers",
+      "item": [
+        {
+          "name": "Transferencia BOB → USD (Cross-currency)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "description": "UUID único para garantizar idempotencia. {{$guid}} genera uno automáticamente."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceAccountId\": \"{{account_id_bob}}\",\n  \"targetAccountId\": \"{{account_id_usd}}\",\n  \"amount\": 200.00,\n  \"description\": \"Transferencia de BOB a USD\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/transfers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "transfers"]
+            }
+          }
+        },
+        {
+          "name": "Transferencia Misma Moneda BOB → BOB",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceAccountId\": \"{{account_id_bob}}\",\n  \"targetAccountId\": \"{{account_id_bob}}\",\n  \"amount\": 100.00,\n  \"description\": \"Transferencia misma moneda\"\n}",
+              "note": "Esta llamada fallará con SameAccountTransferException porque origen y destino son la misma cuenta. Reemplazar targetAccountId con otra cuenta BOB para éxito."
+            },
+            "url": {
+              "raw": "{{base_url}}/api/transfers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "transfers"]
+            }
+          }
+        },
+        {
+          "name": "Transferencia - Idempotency Duplicado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "REPLACE_WITH_PREVIOUS_KEY",
+                "description": "Reemplazar con el UUID usado en una transferencia anterior para probar idempotencia."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceAccountId\": \"{{account_id_bob}}\",\n  \"targetAccountId\": \"{{account_id_usd}}\",\n  \"amount\": 50.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/transfers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "transfers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Movements",
+      "item": [
+        {
+          "name": "Historial de Movimientos (Paginado)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/{{account_id_bob}}/movements?page=1&pageSize=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts", "{{account_id_bob}}", "movements"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Exchange Rate",
+      "item": [
+        {
+          "name": "Tipo de Cambio USD/BOB",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/tipo-cambio",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tipo-cambio"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Reporte Consolidado de Saldo (en BOB)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reportes/balance-consolidado?customerId={{customer_id}}&startDate=2024-01-01&endDate=2026-12-31&currency=BOB",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reportes", "balance-consolidado"],
+              "query": [
+                {
+                  "key": "customerId",
+                  "value": "{{customer_id}}"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-12-31"
+                },
+                {
+                  "key": "currency",
+                  "value": "BOB"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reporte Consolidado de Saldo (en USD)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reportes/balance-consolidado?customerId={{customer_id}}&startDate=2024-01-01&endDate=2026-12-31&currency=USD",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reportes", "balance-consolidado"],
+              "query": [
+                {
+                  "key": "customerId",
+                  "value": "{{customer_id}}"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-12-31"
+                },
+                {
+                  "key": "currency",
+                  "value": "USD"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
